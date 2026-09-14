@@ -3,6 +3,7 @@ defmodule LegionWeb.Components.Trace do
 
   use LegionWeb, :html
 
+  alias LegionWeb.Components.Usage
   alias LegionWeb.{Helpers, Markup}
 
   attr :items, :list, required: true
@@ -96,8 +97,9 @@ defmodule LegionWeb.Components.Trace do
       <% else %>
         <.render_response_only data={@data} />
       <% end %>
-      <span :if={@data.duration} class="text-black/50 ml-auto shrink-0">
-        {format_duration(@data.duration)}
+      <span class="ml-auto shrink-0 flex items-center gap-3 text-black/50 tabular-nums">
+        <span :if={@data.duration}>{format_duration(@data.duration)}</span>
+        <Usage.chip :if={@data.usage != []} usage={@data.usage} />
       </span>
     </div>
     """

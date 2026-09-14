@@ -579,4 +579,126 @@ defmodule LegionWeb.TraceReducerTest do
              ] = result
     end
   end
+
+  describe "usage" do
+    @usage %{"input_tokens" => 10, "output_tokens" => 2, "at" => 1}
+
+    test "a step carries its llm_stop usage as a one-entry list" do
+      [item] =
+        items([
+          event(%{
+            type: :llm_stop,
+            data: %{agent_id: "main", object: %{"action" => "done"}, usage: @usage}
+          })
+        ])
+
+      assert {:step, %{usage: [@usage]}} = item
+    end
+
+    test "a step without usage carries an empty list" do
+      [item] =
+        items([
+          event(%{type: :llm_stop, data: %{agent_id: "main", object: %{"action" => "done"}}})
+        ])
+
+      assert {:step, %{usage: []}} = item
+    end
+
+    test "a step paired with its eval keeps its usage" do
+      [item] =
+        items([
+          event(%{
+            seq: 1,
+            type: :llm_stop,
+            data: %{
+              agent_id: "main",
+              object: %{"action" => "eval_and_continue", "code" => "x"},
+              usage: @usage
+            }
+          }),
+          event(%{
+            seq: 2,
+            type: :eval_stop,
+            data: %{agent_id: "main", success: true, result: "ok"}
+          })
+        ])
+
+      assert {:step, %{eval: %{success: true}, usage: [@usage]}} = item
+    end
+
+    test "a collapsed eval_and_complete + return step carries both requests in order" do
+      complete = %{"input_tokens" => 10, "at" => 1}
+      return = %{"input_tokens" => 20, "at" => 2}
+
+      result =
+        items([
+          event(%{
+            seq: 1,
+            type: :llm_stop,
+            data: %{
+              agent_id: "main",
+              object: %{"action" => "eval_and_complete", "code" => "x"},
+              usage: complete
+            }
+          }),
+          event(%{
+            seq: 2,
+            type: :eval_stop,
+            data: %{agent_id: "main", success: true, result: "ok"}
+          }),
+          event(%{
+            seq: 3,
+            type: :llm_stop,
+            data: %{
+              agent_id: "main",
+              object: %{"action" => "return", "result" => "final"},
+              usage: return
+            }
+          })
+        ])
+
+      assert [{:step, %{action: "return", usage: [^complete, ^return]}}] = result
+    end
+
+    test "a collapsed step keeps only the request that carried usage" do
+      return = %{"input_tokens" => 20, "at" => 2}
+
+      result =
+        items([
+          event(%{
+            seq: 1,
+            type: :llm_stop,
+            data: %{agent_id: "main", object: %{"action" => "eval_and_complete", "code" => "x"}}
+          }),
+          event(%{
+            seq: 2,
+            type: :eval_stop,
+            data: %{agent_id: "main", success: true, result: "ok"}
+          }),
+          event(%{
+            seq: 3,
+            type: :llm_stop,
+            data: %{
+              agent_id: "main",
+              object: %{"action" => "return", "result" => "final"},
+              usage: return
+            }
+          })
+        ])
+
+      assert [{:step, %{usage: [^return]}}] = result
+    end
+
+    test "a sub-agent step carries its usage" do
+      [{:subagent, _name, [item]}] =
+        items([
+          event(%{
+            type: :llm_stop,
+            data: %{agent_id: "child", object: %{"action" => "done"}, usage: @usage}
+          })
+        ])
+
+      assert {:step, %{usage: [@usage]}} = item
+    end
+  end
 end

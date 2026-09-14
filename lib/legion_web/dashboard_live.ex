@@ -19,7 +19,6 @@ defmodule LegionWeb.DashboardLive do
     {:ok,
      socket
      |> assign(:usage, [])
-     |> assign(:show_usage_modal, false)
      |> assign(:prefix, session["prefix"])
      |> assign(:live_path, session["live_path"])
      |> assign(:live_transport, session["live_transport"])
@@ -69,7 +68,6 @@ defmodule LegionWeb.DashboardLive do
     {:noreply,
      socket
      |> assign(:usage, usage)
-     |> assign(:show_usage_modal, false)
      |> assign(:show_prompt_modal, false)
      |> assign(:selected_agent_id, agent_id)
      |> assign(:selected_agent, agent)
@@ -87,7 +85,6 @@ defmodule LegionWeb.DashboardLive do
     {:noreply,
      socket
      |> assign(:usage, [])
-     |> assign(:show_usage_modal, false)
      |> assign(:show_prompt_modal, false)
      |> assign(:selected_agent_id, nil)
      |> assign(:selected_agent, nil)
@@ -163,14 +160,6 @@ defmodule LegionWeb.DashboardLive do
     {:noreply, assign(socket, :show_prompt_modal, false)}
   end
 
-  def handle_event("show_usage", _params, socket) do
-    {:noreply, assign(socket, :show_usage_modal, true)}
-  end
-
-  def handle_event("close_usage", _params, socket) do
-    {:noreply, assign(socket, :show_usage_modal, false)}
-  end
-
   def handle_event("load_more", _params, socket) do
     {:noreply, assign_agents(socket, socket.assigns.list_limit + @page_size)}
   end
@@ -195,7 +184,6 @@ defmodule LegionWeb.DashboardLive do
         chat_form={@chat_form}
         prefix={@prefix}
         usage={@usage}
-        show_usage_modal={@show_usage_modal}
       />
     </div>
     """

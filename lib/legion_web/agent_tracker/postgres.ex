@@ -215,8 +215,14 @@ if Code.ensure_loaded?(Postgrex) do
       |> DateTime.to_unix(:millisecond)
     end
 
-    defp to_events(%{conversation_state: %{messages: messages}, agent_id: agent_id}) do
-      for {message, seq} <- Enum.with_index(messages, 1), do: to_event(message, seq, agent_id)
+    defp to_events(%{conversation_state: %{messages: messages}, agent_id: agent_id} = payload) do
+      # Later entries win: a turn that crashed under :turn persistence keeps its
+      # usage while its messages are lost, and the next turn reuses the same slots.
+      usage_by_index = Map.new(to_usage(payload), &{&1["message_index"], &1})
+
+      for {message, seq} <- Enum.with_index(messages, 1) do
+        to_event(message, seq, agent_id, usage_by_index[seq - 1])
+      end
     end
 
     defp to_events(_payload), do: []
@@ -224,13 +230,13 @@ if Code.ensure_loaded?(Postgrex) do
     defp to_usage(%{usage: usage}) when is_list(usage), do: usage
     defp to_usage(_payload), do: []
 
-    defp to_event(message, seq, agent_id) do
+    defp to_event(message, seq, agent_id, usage) do
       %LegionEvent{
         seq: seq,
         agent_id: agent_id,
         type: event_type(message.type),
         timestamp: message[:at],
-        data: event_data(message.type, message.content)
+        data: event_data(message.type, message.content, usage)
       }
     end
 
@@ -238,9 +244,9 @@ if Code.ensure_loaded?(Postgrex) do
     defp event_type(:assistant), do: :llm_stop
     defp event_type(_eval_result_or_error), do: :eval_stop
 
-    defp event_data(:user, content), do: %{message: content}
+    defp event_data(:user, content, _usage), do: %{message: content}
 
-    defp event_data(:assistant, content) do
+    defp event_data(:assistant, content, usage) do
       object =
         case content do
           content when is_binary(content) ->
@@ -253,11 +259,11 @@ if Code.ensure_loaded?(Postgrex) do
             %{"raw" => inspect(content)}
         end
 
-      %{object: object}
+      if usage, do: %{object: object, usage: usage}, else: %{object: object}
     end
 
-    defp event_data(:eval_result, content), do: %{success: true, result: content}
-    defp event_data(:error, content), do: %{success: false, error: content}
+    defp event_data(:eval_result, content, _usage), do: %{success: true, result: content}
+    defp event_data(:error, content, _usage), do: %{success: false, error: content}
 
     defp broadcast_usage(agent_id, usage) do
       Phoenix.PubSub.broadcast(

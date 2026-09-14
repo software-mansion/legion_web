@@ -162,20 +162,18 @@ defmodule LegionWeb.DashboardLiveTest do
       assert socket.assigns.system_prompt != nil
     end
 
-    test "loads the agent's usage and closes the usage modal" do
+    test "loads the agent's usage" do
       agent_id = "spender"
       :ets.insert(:legion_web_agents, {agent_id, agent_record(agent_id)})
       usage = %{"input_tokens" => 10, "output_tokens" => 2, "at" => 1}
       :ets.insert(:legion_web_usage, {{agent_id, 1}, usage})
 
       encoded = LegionWeb.Helpers.encode_agent_id(agent_id)
-      socket = mounted_socket(%{show_usage_modal: true})
 
       {:noreply, socket} =
-        DashboardLive.handle_params(%{"agent_id" => encoded}, "/legion", socket)
+        DashboardLive.handle_params(%{"agent_id" => encoded}, "/legion", mounted_socket())
 
       assert socket.assigns.usage == [usage]
-      assert socket.assigns.show_usage_modal == false
     end
 
     test "highlights fenced code in the system prompt by its fence language" do
@@ -395,19 +393,6 @@ defmodule LegionWeb.DashboardLiveTest do
       socket = mounted_socket(%{show_prompt_modal: true})
       {:noreply, socket} = DashboardLive.handle_event("close_prompt", %{}, socket)
       assert socket.assigns.show_prompt_modal == false
-    end
-  end
-
-  describe "handle_event/3 - usage modal" do
-    test "show_usage opens the modal" do
-      {:noreply, socket} = DashboardLive.handle_event("show_usage", %{}, mounted_socket())
-      assert socket.assigns.show_usage_modal == true
-    end
-
-    test "close_usage closes the modal" do
-      socket = mounted_socket(%{show_usage_modal: true})
-      {:noreply, socket} = DashboardLive.handle_event("close_usage", %{}, socket)
-      assert socket.assigns.show_usage_modal == false
     end
   end
 

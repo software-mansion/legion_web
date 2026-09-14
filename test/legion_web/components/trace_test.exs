@@ -5,7 +5,7 @@ defmodule LegionWeb.Components.TraceTest do
 
   alias LegionWeb.Components.Trace
 
-  defp step(code) do
+  defp step(code, usage \\ []) do
     {:step,
      %{
        seq: 1,
@@ -15,8 +15,26 @@ defmodule LegionWeb.Components.TraceTest do
        result: nil,
        error: nil,
        duration: nil,
-       eval: nil
+       eval: nil,
+       usage: usage
      }}
+  end
+
+  describe "usage chip" do
+    test "renders the chip on a step with usage" do
+      usage = %{"input_tokens" => 4_930, "output_tokens" => 132, "at" => 1_700_000_158_000}
+      html = render_component(&Trace.render/1, items: [step("x", [usage])], language: nil)
+
+      assert html =~ "↑4.9k"
+      assert html =~ "22:15:58 UTC"
+    end
+
+    test "renders no chip on a step without usage" do
+      html = render_component(&Trace.render/1, items: [step("x")], language: nil)
+
+      refute html =~ "↑"
+      refute html =~ "data-note"
+    end
   end
 
   describe "step code highlighting" do

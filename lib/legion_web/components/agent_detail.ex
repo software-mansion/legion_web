@@ -15,7 +15,6 @@ defmodule LegionWeb.Components.AgentDetail do
   attr :chat_form, :any, required: true
   attr :prefix, :string, required: true
   attr :usage, :list, default: []
-  attr :show_usage_modal, :boolean, default: false
 
   def render(%{agent: nil} = assigns) do
     ~H"""
@@ -68,13 +67,6 @@ defmodule LegionWeb.Components.AgentDetail do
             >
               System Prompt
             </button>
-            <button
-              :if={@usage != []}
-              phx-click="show_usage"
-              class="text-sol-violet hover:text-sol-violet/80 transition-colors cursor-pointer"
-            >
-              Usage
-            </button>
             <Usage.summary usage={@usage} />
             <span :if={duration = Helpers.format_duration(@agent.started_at, @agent.finished_at)}>
               {duration}
@@ -93,9 +85,6 @@ defmodule LegionWeb.Components.AgentDetail do
         status={@agent.status}
         form={@chat_form}
       />
-
-      <%!-- Usage Overlay --%>
-      <Usage.panel :if={@show_usage_modal} usage={@usage} />
 
       <%!-- System Prompt Overlay --%>
       <div

@@ -52,7 +52,9 @@ pre {
   line-height: 1.5;
 }
 
-/* Hover note: CSS tooltip read from data-note. No native delay, survives LiveView patches. */
+/* Hover note: CSS tooltip read from data-note. No native delay, survives LiveView patches.
+   Hidden with display rather than opacity: inside a scroll container an invisible card
+   would still extend the scrollable area. */
 .note {
   position: relative;
 }
@@ -60,9 +62,8 @@ pre {
 .note::before,
 .note::after {
   position: absolute;
-  opacity: 0;
+  display: none;
   pointer-events: none;
-  transition: opacity 0.12s ease;
   z-index: 20;
 }
 
@@ -98,7 +99,7 @@ pre {
 .note:hover::after,
 .note:focus-visible::before,
 .note:focus-visible::after {
-  opacity: 1;
+  display: block;
 }
 /* Note anchored to the element's left edge, for elements near the left of their row. */
 .note-left::after {
@@ -109,12 +110,21 @@ pre {
   left: 10px;
   right: auto;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .note::before,
-  .note::after {
-    transition: none;
-  }
+/* Note with preserved spacing in a monospace font, for aligned columns. */
+.note-pre::after {
+  white-space: pre;
+  max-width: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+/* Note opening above its anchor, for anchors near the bottom of a scroll container. */
+.note-up::after {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+.note-up::before {
+  top: auto;
+  bottom: calc(100% + 4px);
 }
 
 /* Subtle pulse for active indicators */

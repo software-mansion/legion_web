@@ -65,6 +65,73 @@ defmodule LegionWeb.UsageAggregator do
   def format_cost(cost) when is_number(cost),
     do: "$#{:erlang.float_to_binary(cost / 1, decimals: 3)}"
 
+  @doc ~S|Groups a count's thousands with commas: `4,930`.|
+  @spec format_count(integer()) :: String.t()
+  def format_count(n) when is_integer(n) do
+    n
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
+    |> String.reverse()
+  end
+
+  @doc """
+  Plain-text hover card for a list of usage entries.
+
+  A time line, then aligned columns for tokens and cost. One entry gets its
+  request time; several get the request count and their time span. Meant for
+  `white-space: pre` rendering in a monospace font.
+
+      22:15:58 UTC
+      input    4,930   cached     4,000
+      output     132   reasoning    640
+      cost    $0.003   estimated at list prices
+  """
+  @spec card([map()]) :: String.t()
+  def card(entries) when is_list(entries) do
+    totals = totals(entries)
+
+    Enum.join(
+      [
+        time_line(entries),
+        row("input", format_count(totals.input), "cached", format_count(totals.cached)),
+        row("output", format_count(totals.output), "reasoning", format_count(totals.reasoning)),
+        cost_line(totals.cost)
+      ],
+      "\n"
+    )
+  end
+
+  defp time_line([entry]), do: "#{format_time(entry["at"])} UTC"
+
+  defp time_line(entries) do
+    first = List.first(entries)
+    last = List.last(entries)
+
+    "#{length(entries)} requests · #{format_time(first["at"])} – #{format_time(last["at"])} UTC"
+  end
+
+  defp row(label, value, second_label, second_value) do
+    String.pad_trailing(label, 6) <>
+      String.pad_leading(value, 8) <>
+      "   " <>
+      String.pad_trailing(second_label, 10) <>
+      String.pad_leading(second_value, 6)
+  end
+
+  defp cost_line(nil), do: String.pad_trailing("cost", 6) <> String.pad_leading("—", 8)
+
+  defp cost_line(cost) do
+    String.pad_trailing("cost", 6) <>
+      String.pad_leading(format_cost(cost), 8) <> "   estimated at list prices"
+  end
+
+  defp format_time(ms) when is_integer(ms) do
+    ms |> DateTime.from_unix!(:millisecond) |> Calendar.strftime("%H:%M:%S")
+  end
+
+  defp format_time(_), do: "--:--:--"
+
   defp add_cost(acc, cost) when is_number(cost), do: (acc || 0) + cost
   defp add_cost(acc, _), do: acc
 end

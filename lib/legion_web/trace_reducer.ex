@@ -10,7 +10,9 @@ defmodule LegionWeb.TraceReducer do
     * `{:message, data}` - user message to the agent
     * `{:human_response, data}` - user response to HumanTool.ask
     * `{:exception, data}` - fatal error during message handling
-    * `{:step, data}` - one LLM decision, optionally paired with eval outcome
+    * `{:step, data}` - one LLM decision, optionally paired with eval outcome; `usage`
+      lists the LLM usage entries behind it (two when an eval_and_complete + return
+      pair is collapsed, none when the tracker recorded no usage)
     * `{:eval_error, data}` - standalone eval failure (unmatched with llm_stop)
     * `{:subagent, name, items}` - collapsible group of sub-agent events
     * `{:unknown, data}` - unrecognized event type
@@ -125,7 +127,11 @@ defmodule LegionWeb.TraceReducer do
        )
        when action in ~w(return done) do
     {:step, return_data} = build_step(event, nil)
-    merged = {:step, %{return_data | eval: complete_data.eval}}
+
+    merged =
+      {:step,
+       %{return_data | eval: complete_data.eval, usage: complete_data.usage ++ return_data.usage}}
+
     %{state | items: [merged | state.items], pending: nil, between: []}
   end
 
@@ -191,7 +197,8 @@ defmodule LegionWeb.TraceReducer do
        result: object["result"],
        error: llm_event.data[:error],
        duration: llm_event.data[:duration],
-       eval: eval
+       eval: eval,
+       usage: List.wrap(llm_event.data[:usage])
      }}
   end
 

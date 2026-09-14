@@ -176,6 +176,99 @@ defmodule LegionWeb.AgentTracker.PostgresTest do
     assert Postgres.get_usage("missing") == []
   end
 
+  test "attaches each usage entry to the assistant event at its message_index" do
+    first = %{"input_tokens" => 10, "output_tokens" => 1, "at" => 2, "message_index" => 1}
+    second = %{"input_tokens" => 20, "output_tokens" => 2, "at" => 5, "message_index" => 3}
+
+    Store.put(%Payload{
+      agent_id: "paired",
+      agent_module: TestAgent,
+      status: :idle,
+      started_at: ~N[2026-07-27 12:00:00],
+      conversation_state: %{
+        messages: [
+          %{type: :user, content: "hello", at: 1},
+          %{type: :assistant, content: ~s({"action":"eval_and_continue","code":"x"}), at: 2},
+          %{type: :eval_result, content: "ok", at: 3},
+          %{type: :assistant, content: ~s({"action":"done"}), at: 5}
+        ],
+        bindings: []
+      },
+      usage: [first, second]
+    })
+
+    assert {:ok, _pid} = Postgres.start_link(store: Store, notifications: Notifications)
+
+    assert [
+             %LegionEvent{seq: 1, type: :message_start, data: user_data},
+             %LegionEvent{seq: 2, type: :llm_stop, data: %{usage: ^first}},
+             %LegionEvent{seq: 3, type: :eval_stop, data: eval_data},
+             %LegionEvent{seq: 4, type: :llm_stop, data: %{usage: ^second}}
+           ] = Postgres.get_events("paired")
+
+    refute Map.has_key?(user_data, :usage)
+    refute Map.has_key?(eval_data, :usage)
+    assert Postgres.get_usage("paired") == [first, second]
+  end
+
+  test "leaves an assistant event without usage when no entry names its slot" do
+    # Legion 0.5 entries carry no message_index. A failed try's entry names the
+    # :error slot it left behind. A cancelled turn's entry names a slot that
+    # never got a message. None of them belong to the assistant message.
+    Store.put(%Payload{
+      agent_id: "unpaired",
+      agent_module: TestAgent,
+      status: :idle,
+      started_at: ~N[2026-07-27 12:00:00],
+      conversation_state: %{
+        messages: [
+          %{type: :user, content: "hello", at: 1},
+          %{type: :error, content: "LLM response object invalid", at: 3},
+          %{type: :assistant, content: ~s({"action":"done"}), at: 5}
+        ],
+        bindings: []
+      },
+      usage: [
+        %{"input_tokens" => 1, "at" => 0},
+        %{"input_tokens" => 2, "at" => 2, "message_index" => 1},
+        %{"input_tokens" => 3, "at" => 6, "message_index" => 9}
+      ]
+    })
+
+    assert {:ok, _pid} = Postgres.start_link(store: Store, notifications: Notifications)
+
+    events = Postgres.get_events("unpaired")
+    assert [%{seq: 1}, %{seq: 2, type: :eval_stop}, %{seq: 3, type: :llm_stop}] = events
+    refute Enum.any?(events, &Map.has_key?(&1.data, :usage))
+  end
+
+  test "the latest entry naming a slot wins" do
+    # A turn that crashed under :turn persistence keeps its usage but loses its
+    # messages; the next turn's requests fill the same slots again.
+    stale = %{"input_tokens" => 5, "at" => 2, "message_index" => 1}
+    fresh = %{"input_tokens" => 7, "at" => 9, "message_index" => 1}
+
+    Store.put(%Payload{
+      agent_id: "replayed",
+      agent_module: TestAgent,
+      status: :idle,
+      started_at: ~N[2026-07-27 12:00:00],
+      conversation_state: %{
+        messages: [
+          %{type: :user, content: "hello", at: 1},
+          %{type: :assistant, content: ~s({"action":"done"}), at: 9}
+        ],
+        bindings: []
+      },
+      usage: [stale, fresh]
+    })
+
+    assert {:ok, _pid} = Postgres.start_link(store: Store, notifications: Notifications)
+
+    assert [_user, %LegionEvent{seq: 2, type: :llm_stop, data: %{usage: ^fresh}}] =
+             Postgres.get_events("replayed")
+  end
+
   test "notification broadcasts the agent's current usage on the agent's topic" do
     start_supervised!({Postgres, store: Store, notifications: Notifications})
     Phoenix.PubSub.subscribe(LegionWeb.PubSub, "legion_web:agent:\"new\"")

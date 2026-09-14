@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+
+- Inline usage - each trace step shows its LLM request's tokens and estimated cost, with a per-request hover card; the header pill's hover card carries the conversation totals. The `Usage` overlay is removed. Under the Postgres tracker, per-step usage needs Legion 0.6, which stamps usage entries with `"message_index"`
+
 ## v0.5.0 - 2026-09-01
 
 ### Changes
