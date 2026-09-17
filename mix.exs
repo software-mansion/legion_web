@@ -1,7 +1,7 @@
 defmodule LegionWeb.MixProject do
   use Mix.Project
 
-  @source_url "https://github.com/software-mansion-labs/legion_web"
+  @source_url "https://github.com/software-mansion/legion_web"
   @version "0.5.0"
 
   def project do

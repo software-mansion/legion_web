@@ -1,12 +1,12 @@
 # LegionWeb
 
-[![License](https://img.shields.io/hexpm/l/legion_web.svg)](https://github.com/software-mansion-labs/legion_web/blob/main/LICENSE)
+[![License](https://img.shields.io/hexpm/l/legion_web.svg)](https://github.com/software-mansion/legion_web/blob/main/LICENSE)
 [![Version](https://img.shields.io/hexpm/v/legion_web.svg)](https://hex.pm/packages/legion_web)
 [![Hex Docs](https://img.shields.io/badge/documentation-gray.svg)](https://hexdocs.pm/legion_web)
 
-![LegionWeb Dashboard](https://raw.githubusercontent.com/software-mansion-labs/legion_web/main/img/preview.png)
+![LegionWeb Dashboard](https://raw.githubusercontent.com/software-mansion/legion_web/main/img/preview.png)
 
-Real-time dashboard for [Legion](https://github.com/software-mansion-labs/legion) agents. Shows agent lifecycle, LLM requests, code execution, and results as they happen.
+Real-time dashboard for [Legion](https://github.com/software-mansion/legion) agents. Shows agent lifecycle, LLM requests, code execution, and results as they happen.
 
 ## Installation
 
