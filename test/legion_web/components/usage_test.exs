@@ -56,7 +56,6 @@ defmodule LegionWeb.Components.UsageTest do
       assert html =~ "↑4.9k"
       assert html =~ "↓132"
       assert html =~ "$0.003"
-      assert html =~ "22:15:58 UTC"
       assert html =~ "reasoning    640"
     end
 
@@ -80,7 +79,7 @@ defmodule LegionWeb.Components.UsageTest do
       assert html =~ "↑10.0k"
       assert html =~ "↓544"
       assert html =~ "$0.007"
-      assert html =~ "2 requests · 22:15:58 – 22:16:07 UTC"
+      assert html =~ "2 requests"
     end
   end
 end

@@ -78,11 +78,9 @@ defmodule LegionWeb.UsageAggregator do
   @doc """
   Plain-text hover card for a list of usage entries.
 
-  A time line, then aligned columns for tokens and cost. One entry gets its
-  request time; several get the request count and their time span. Meant for
-  `white-space: pre` rendering in a monospace font.
+  Aligned columns for tokens and cost; several entries open with their request
+  count. Meant for `white-space: pre` rendering in a monospace font.
 
-      22:15:58 UTC
       input    4,930   cached     4,000
       output     132   reasoning    640
       cost    $0.003   estimated at list prices
@@ -92,24 +90,18 @@ defmodule LegionWeb.UsageAggregator do
     totals = totals(entries)
 
     Enum.join(
-      [
-        time_line(entries),
-        row("input", format_count(totals.input), "cached", format_count(totals.cached)),
-        row("output", format_count(totals.output), "reasoning", format_count(totals.reasoning)),
-        cost_line(totals.cost)
-      ],
+      count_line(entries) ++
+        [
+          row("input", format_count(totals.input), "cached", format_count(totals.cached)),
+          row("output", format_count(totals.output), "reasoning", format_count(totals.reasoning)),
+          cost_line(totals.cost)
+        ],
       "\n"
     )
   end
 
-  defp time_line([entry]), do: "#{format_time(entry["at"])} UTC"
-
-  defp time_line(entries) do
-    first = List.first(entries)
-    last = List.last(entries)
-
-    "#{length(entries)} requests · #{format_time(first["at"])} – #{format_time(last["at"])} UTC"
-  end
+  defp count_line([_]), do: []
+  defp count_line(entries), do: ["#{length(entries)} requests"]
 
   defp row(label, value, second_label, second_value) do
     String.pad_trailing(label, 6) <>
@@ -125,12 +117,6 @@ defmodule LegionWeb.UsageAggregator do
     String.pad_trailing("cost", 6) <>
       String.pad_leading(format_cost(cost), 8) <> "   estimated at list prices"
   end
-
-  defp format_time(ms) when is_integer(ms) do
-    ms |> DateTime.from_unix!(:millisecond) |> Calendar.strftime("%H:%M:%S")
-  end
-
-  defp format_time(_), do: "--:--:--"
 
   defp add_cost(acc, cost) when is_number(cost), do: (acc || 0) + cost
   defp add_cost(acc, _), do: acc
