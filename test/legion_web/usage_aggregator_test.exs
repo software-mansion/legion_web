@@ -78,21 +78,19 @@ defmodule LegionWeb.UsageAggregatorTest do
       "at" => 1_700_000_158_000
     }
 
-    test "lays one request out as aligned columns under its time" do
+    test "lays one request out as aligned columns" do
       assert Usage.card([@entry]) ==
                """
-               22:15:58 UTC
                input    4,930   cached     4,000
                output     132   reasoning    640
                cost    $0.003   estimated at list prices\
                """
     end
 
-    test "opens with the request count and time span for several entries" do
+    test "opens with the request count for several entries" do
       second = %{@entry | "at" => 1_700_000_167_000, "input_tokens" => 5_070}
 
-      assert Usage.card([@entry, second]) |> String.split("\n") |> hd() ==
-               "2 requests · 22:15:58 – 22:16:07 UTC"
+      assert Usage.card([@entry, second]) |> String.split("\n") |> hd() == "2 requests"
     end
 
     test "counts missing counters as zero" do

@@ -26,7 +26,7 @@ defmodule LegionWeb.Components.TraceTest do
       html = render_component(&Trace.render/1, items: [step("x", [usage])], language: nil)
 
       assert html =~ "↑4.9k"
-      assert html =~ "22:15:58 UTC"
+      assert html =~ "input    4,930"
     end
 
     test "renders no chip on a step without usage" do
