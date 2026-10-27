@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.6.0 - 2026-10-27
+
+### Changes
+
+- Markdown via [MDEx](https://hexdocs.pm/mdex) - [`LegionWeb.Markup`](https://hexdocs.pm/legion_web/LegionWeb.Markup.html) renders with MDEx instead of the retired earmark; `javascript:` links and `data:` sources other than images lose their target, raw HTML stays escaped, and GFM tables, strikethrough and bare-URL autolinks render. MDEx ships a precompiled native library
+- Tables - padded, bordered cells in trace responses and the system prompt; wide tables scroll inside the response
+
 ## v0.5.1 - 2026-10-05
 
 ### Changes
