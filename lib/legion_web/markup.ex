@@ -38,23 +38,33 @@ defmodule LegionWeb.Markup do
   @spec markdown(String.t()) :: Phoenix.HTML.safe()
   def markdown(text) when is_binary(text) do
     text
-    |> MDEx.to_html!(
+    |> MDEx.parse_document!(
       extension: [table: true, strikethrough: true, autolink: true],
-      render: [escape: true],
-      codefence_renderers: code_block_renderers()
+      render: [escape: true]
     )
+    |> MDEx.traverse_and_update(&highlight_code_block/1)
+    |> MDEx.to_html!()
     |> Phoenix.HTML.raw()
   end
 
-  # Built per call so lexers registered at runtime are picked up.
-  defp code_block_renderers do
-    Map.new(Makeup.Registry.supported_language_names(), fn language ->
-      {language, &highlight_code_block/3}
-    end)
+  # Not MDEx's `codefence_renderers`: it parses the info string as shell
+  # arguments and raises on an unbalanced quote, e.g. ```foo "
+  defp highlight_code_block(%MDEx.CodeBlock{info: info, literal: code} = node) do
+    [language | _metadata] = String.split(info, ~r/\s/, parts: 2)
+
+    case Makeup.Registry.get_lexer_by_name(language) do
+      nil ->
+        node
+
+      _lexer ->
+        {:safe, highlighted} = highlight(code, language)
+
+        %MDEx.Raw{
+          literal:
+            ~s(<pre><code class="language-#{language} highlight">#{highlighted}</code></pre>)
+        }
+    end
   end
 
-  defp highlight_code_block(language, _metadata, code) do
-    {:safe, highlighted} = highlight(code, language)
-    ~s(<pre><code class="language-#{language} highlight">#{highlighted}</code></pre>)
-  end
+  defp highlight_code_block(node), do: node
 end

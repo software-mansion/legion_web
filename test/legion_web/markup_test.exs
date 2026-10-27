@@ -112,5 +112,13 @@ defmodule LegionWeb.MarkupTest do
     test "renders malformed markdown best-effort instead of raising" do
       assert {:safe, _} = Markup.markdown("[unclosed](link\n\n> *")
     end
+
+    test "renders fenced blocks whose info string has an unclosed quote" do
+      html = Markup.markdown("```foo \"\nplain\n```") |> to_html()
+      assert html =~ "plain"
+
+      html = Markup.markdown("```lua title=\"x\nlocal x = 1\n```") |> to_html()
+      assert html =~ ~s(<code class="language-lua highlight">)
+    end
   end
 end
