@@ -240,6 +240,11 @@ details summary::marker {
   margin: 0.8em 0;
 }
 
+.prompt-prose table { border-collapse: collapse; margin: 0.8em 0; }
+.prompt-prose th, .prompt-prose td { border: 1px solid #eee8d5; padding: 0.3em 0.7em; vertical-align: top; }
+.prompt-prose th { color: #073642; font-weight: 600; background: #fdf6e3; }
+.prompt-prose th:not([align]) { text-align: left; }
+
 /* Prose — markdown rendering (scoped to trace response boxes; inherits the
    trace font size) */
 .trace-prose p { margin: 0.5em 0; }
@@ -288,6 +293,12 @@ details summary::marker {
   color: #657b83;
   margin: 0.6em 0;
 }
+
+/* A wide table scrolls with the response box instead of overflowing it */
+.trace-prose table { border-collapse: collapse; margin: 0.6em 0; display: block; overflow-x: auto; }
+.trace-prose th, .trace-prose td { border: 1px solid #eee8d5; padding: 0.25em 0.6em; vertical-align: top; }
+.trace-prose th { color: #073642; font-weight: 600; }
+.trace-prose th:not([align]) { text-align: left; }
 
 /* Makeup syntax highlighting — solarized light palette */
 .highlight .c, .highlight .c1, .highlight .ch, .highlight .cm,
