@@ -91,8 +91,34 @@ defmodule LegionWeb.MarkupTest do
       assert html =~ "&lt;b"
     end
 
+    test "drops javascript: link targets" do
+      html = Markup.markdown("[click](javascript:alert(1))") |> to_html()
+      refute html =~ "javascript:"
+      assert html =~ "click"
+    end
+
+    test "drops data: image sources" do
+      html = Markup.markdown("![x](data:text/html;base64,PHNjcmlwdD4=)") |> to_html()
+      refute html =~ "data:"
+    end
+
+    test "renders tables, strikethrough and bare links" do
+      html = Markup.markdown("| a |\n|---|\n| 1 |\n\n~~gone~~ https://example.com") |> to_html()
+      assert html =~ "<table>"
+      assert html =~ "<del>gone</del>"
+      assert html =~ ~s(<a href="https://example.com">)
+    end
+
     test "renders malformed markdown best-effort instead of raising" do
       assert {:safe, _} = Markup.markdown("[unclosed](link\n\n> *")
+    end
+
+    test "renders fenced blocks whose info string has an unclosed quote" do
+      html = Markup.markdown("```foo \"\nplain\n```") |> to_html()
+      assert html =~ "plain"
+
+      html = Markup.markdown("```lua title=\"x\nlocal x = 1\n```") |> to_html()
+      assert html =~ ~s(<code class="language-lua highlight">)
     end
   end
 end
