@@ -69,7 +69,7 @@ defmodule LegionWeb.MixProject do
       {:jason, "~> 1.4"},
       {:makeup, "~> 1.0"},
       {:makeup_syntect, "~> 0.1"},
-      {:earmark, "~> 1.4"},
+      {:mdex, "~> 0.14"},
 
       # Optional
       {:igniter, "~> 0.5", optional: true},
