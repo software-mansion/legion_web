@@ -70,7 +70,12 @@ if Code.ensure_loaded?(Postgrex) do
       {:ok, notifications} =
         notifications_module.start_link(store.__repo__().config() ++ [auto_reconnect: true])
 
-      {:ok, _ref} = notifications_module.listen(notifications, store.__table__())
+      # :eventually means the connection is not up yet. Postgrex keeps the channel
+      # and issues LISTEN when it connects, so the tracker can start without it.
+      case notifications_module.listen(notifications, store.__table__()) do
+        {:ok, _reference} -> :ok
+        {:eventually, _reference} -> :ok
+      end
 
       {:ok, %{store: store, notifications: notifications, event_cursors: %{}}}
     end
