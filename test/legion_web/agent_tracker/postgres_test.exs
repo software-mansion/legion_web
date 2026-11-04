@@ -52,6 +52,23 @@ defmodule LegionWeb.AgentTracker.PostgresTest do
     def listen(_notifications, _channel), do: {:ok, make_ref()}
   end
 
+  defmodule DisconnectedNotifications do
+    def start_link(_opts), do: Agent.start_link(fn -> nil end)
+    def listen(_notifications, _channel), do: {:eventually, make_ref()}
+  end
+
+  defmodule UnreachableRepo do
+    # Nothing listens on port 1, so every connection attempt is refused.
+    def config do
+      [hostname: "localhost", port: 1, database: "legion", username: "legion", password: "legion"]
+    end
+  end
+
+  defmodule UnreachableStore do
+    def __repo__, do: UnreachableRepo
+    def __table__, do: "test_agents"
+  end
+
   setup do
     start_supervised!(Store)
 
@@ -65,6 +82,18 @@ defmodule LegionWeb.AgentTracker.PostgresTest do
     })
 
     :ok
+  end
+
+  test "starts when listening has to wait for the database connection" do
+    assert {:ok, _pid} =
+             start_supervised({Postgres, store: Store, notifications: DisconnectedNotifications})
+
+    assert [%LegionAgent{agent_id: "new"}] = Postgres.list_agents(50)
+  end
+
+  @tag :capture_log
+  test "starts on real Postgrex notifications when the database is unreachable" do
+    assert {:ok, _pid} = start_supervised({Postgres, store: UnreachableStore})
   end
 
   test "passes requested list limit to the configured store" do
